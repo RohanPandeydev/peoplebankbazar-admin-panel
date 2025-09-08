@@ -1,0 +1,160 @@
+@media(min-width:1400px){
+    
+}
+/*max width 1399px*/
+@media(max-width:1399px){
+    
+
+    /* subscription page css */
+    .subscription-pricing-wrap .pricing-button .subc-add .subc-add-btn{
+        font-size: 14px;
+    }
+    /* subscription page css end */
+}
+/*max width 1200px to 1399px*/
+@media(min-width: 1200px) and (max-width: 1399px){
+
+}
+/*max width 1199px*/
+@media(max-width: 1199px){
+    /* Header css start */
+    .head-search-wrap .input-group .form-control{
+        min-width: 270px;
+    }
+    /* Header css end */
+}
+
+/*max width 992px to 1199px*/
+@media(min-width: 992px) and (max-width: 1199px){
+
+}
+
+/*max width 991px*/
+@media(max-width: 991px){
+    /* header css start */
+    
+	.header-right-wrap > ul > li{
+        padding: 0px 5px;
+    }
+    .head-search-wrap .input-group .form-control {
+        min-width: 120px;
+        width: 120px;
+    }
+
+    /* sidebar open close */
+    .header-wrapper .logo-hamburger-menu .hamburger-menu{
+        display: block;
+    }
+
+    .main-body .main-row .left-sidebar{
+        visibility: hidden;
+        margin-left: -280px;
+        opacity: 0;
+        transition: all 0.5s;
+    }
+    .main-body .main-row .left-sidebar.open{
+        visibility: visible;
+        opacity: 1;
+        margin-left: 0;
+        transition: all 0.5s;
+    }
+    /* sidebar open close end*/
+
+    /* header css end */
+}
+
+/*width 768px to 991px*/
+@media(min-width: 768px) and (max-width: 991px){
+    /* login page css start */
+    .login-left-wrap .login-couple-img {
+        width: 90%;
+    }
+    /* login page css end */
+}
+
+/*max width 767px*/
+@media(max-width: 767px){
+	/* login page css start */
+    .login-left-wrap{
+        min-height: auto;
+    }
+	/* login page css end */
+    /* header */
+    .header-wrapper .logo-wrap img{
+        width: 125px;
+    }
+    .header-wrapper .logo-hamburger-menu .hamburger-menu .hamburger-tigger{
+        width: 40px;
+        height: 32px;
+        font-size: 24px;
+    }
+    .head-search-wrap .input-group .form-control{
+        min-width: 90px;
+        width: 90px;
+        height: 35px;
+    }
+    .head-search-wrap .input-group .input-group-text .btn{
+        font-size: 15px;
+        height: 32px;
+        padding: 2px 5px;
+    }
+    .header-right-wrap > ul > li{
+        padding: 0px 2px;
+    }
+    .header-right-wrap > ul > li .mail-wrap{
+        width: 35px;
+        height: 35px;
+        border-radius: 5px;
+        font-size: 14px;
+    }
+    .header-right-wrap > ul > li .notifications-dropdown .notifications-wrap{
+        width: 35px;
+        height: 35px;
+        border-radius: 5px;
+        font-size: 14px;
+    }
+    .header-right-wrap > ul > li .notifications-dropdown .notifications-wrap .count{
+        width: 16px;
+        height: 16px;
+        font-size: 10px;
+        right: 0px;
+        top: 0px;
+    }
+    .header-right-wrap .user-dropdown .user-info-wrap .user-info h4{
+        font-size: 12px;
+    }
+    .header-right-wrap .user-dropdown .user-info-wrap .user-info p{
+        font-size: 10px;
+    }
+    .header-right-wrap .user-dropdown .user-info-wrap .avatar{
+        width: 35px;
+        height: 35px;
+    }
+    /* header end */
+}
+
+/*width 576px to 767px*/
+@media(min-width: 576px) and (max-width: 767px){
+    
+}
+
+/*max with 575px*/
+@media(max-width: 575px){
+	
+}
+
+/*max with 540px*/
+@media(max-width: 540px){
+	.header-wrapper .logo-hamburger-menu{
+        margin-bottom: 15px;
+        justify-content: space-between;
+        width: 100%;
+    }
+    .header-right-wrap{
+        width: 100%;
+        padding-right: 0px;
+    }
+    .header-right-wrap > ul{
+        justify-content: center;
+    }
+}
