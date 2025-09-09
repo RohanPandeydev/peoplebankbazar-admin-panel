@@ -294,7 +294,7 @@ const AlsoBuyForm = ({ title }) => {
                   <Col md="6" className="mb-3">
                     <FormGroup>
                       <Label>Bank *</Label>
-                      <AsyncSelect value={selectedBank} value={selectedBank}
+                      <AsyncSelect value={selectedBank} 
                         onChange={(val) => {
                           setSelectedBank(val);
                           formik.setFieldValue('bank_id', val ? val.value : null);

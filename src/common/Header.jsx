@@ -45,18 +45,11 @@ const Header = ({ handleToggleMenu }) => {
 
     {
       onSuccess: (data) => {
-        if (!data?.data?.status) {
-          Swal.fire({
-            title: "Error",
-            text: data?.data?.message,
-            icon: "error",
-          });
-          return
-        }
+       
+
         StorageData.removeData()
 
 
-        setLoader(true);
         Swal.fire({
           title: "Successful",
           text: "User Logged Out Successfully",
@@ -92,7 +85,7 @@ const Header = ({ handleToggleMenu }) => {
                   <div className="logo-hamburger-menu">
                     <div className="logo-wrap">
                       <Link to="/">
-                        <img className="img-fluid"  src={ImagesPath.logo} alt="" />
+                        <img className="img-fluid" src={ImagesPath.logo} alt="" />
                       </Link>
                     </div>
                     <div className="hamburger-menu">
@@ -113,17 +106,17 @@ const Header = ({ handleToggleMenu }) => {
                               {/* <div className="avatar">
                                 <img className="img-fluid" src={ImagesPath.logo} alt="" />
                               </div> */}
-                              <CgProfile fontSize={30}/>
+                              <CgProfile fontSize={30} />
                             </div>
                           </DropdownToggle>
                           <DropdownMenu>
                             <ul>
-                             
+
                               <li>
                                 {/* <DropdownItem href="#" tag="a"> <FaRegUser /> Profile</DropdownItem> */}
                                 {/* <Link className='dropdown-item' to={"/profile"}><FaRegUser />Profile</Link> */}
                               </li>
-                            
+
 
                               <li className="border-top" onClick={handleLogout}>
                                 <DropdownItem ><CiLogout /> Logout</DropdownItem>
