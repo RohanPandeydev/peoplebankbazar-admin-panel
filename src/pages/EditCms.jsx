@@ -1,12 +1,12 @@
 import Wrapper from "../layouts/Wrapper";
 import CmsForm from "../component/cms/CmsForm";
 
-const AddCms = () => {
+const EditCms = () => {
   return (
     <Wrapper>
-      <CmsForm title="Add CMS Content" />
+      <CmsForm title="Edit CMS Content" />
     </Wrapper>
   );
 };
 
-export default AddCms;
+export default EditCms;

@@ -1,13 +1,17 @@
 import React, { useState } from "react";
 import TableView from "../../utils/TableView";
 import { useCustomQuery } from "../../utils/QueryHooks";
-import CmsServices from "../../services/CmsServices"; 
+import CmsServices from "../../services/CmsServices";
 import Loader from "../../utils/Loader/Loader";
 import NoDataFound from "../../utils/NoDataFound";
 import { Row, Col, Input, Button, Badge } from "reactstrap";
 import { buildQueryString } from "../../utils/BuildQuery";
 import Pagination from "../../utils/Pagination";
 import { BiReset } from "react-icons/bi";
+import { FaEye, FaRegEdit, FaTrash } from "react-icons/fa";
+import { NavLink } from "react-router-dom";
+import Swal from "sweetalert2";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import config from "../../../config";
 
 const CmsList = ({ page_type }) => {
@@ -16,6 +20,7 @@ const CmsList = ({ page_type }) => {
     search: "",
     is_active: "",
   });
+  const queryClient = useQueryClient();
 
   // API call
   const { data: cmsList, isLoading } = useCustomQuery({
@@ -26,7 +31,7 @@ const CmsList = ({ page_type }) => {
       { key: "limit", value: limit },
       { key: "page_type", value: page_type || "bank_listing" },
       { key: "search", value: searchFilter?.search },
-      { key: "is_active", value: searchFilter?.is_active },
+      // { key: "is_active", value: searchFilter?.is_active },
     ]),
     select: (data) => data,
     errorMsg: "",
@@ -44,21 +49,101 @@ const CmsList = ({ page_type }) => {
     });
   };
 
-  // Render image safely
-  const renderImage = (value, row) => {
-    if (!value) return <span className="text-muted">No Image</span>;
+  // Delete mutation
+  const deleteMutation = useMutation({
+    mutationFn: (id) => CmsServices.deleteCmsContent({ id }),
+    onSuccess: () => {
+      Swal.fire({
+        title: "Success",
+        text: "CMS content deleted successfully",
+        icon: "success",
+        timer: 2000,
+        showConfirmButton: false,
+      });
+      queryClient.invalidateQueries(["cms-list"]);
+    },
+    onError: (err) => {
+      console.error(err);
+      Swal.fire({
+        title: "Error",
+        text: err?.response?.data?.message || "Failed to delete CMS content",
+        icon: "error",
+      });
+    },
+  });
+
+  const handleDelete = (id, title) => {
+    Swal.fire({
+      title: "Are you sure?",
+      text: `You want to delete "${title}"?`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Yes, delete it!",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        deleteMutation.mutate(id);
+      }
+    });
+  };
+
+  // Get edit URL based on page type
+  const getEditUrl = (id) => {
+    switch (page_type) {
+      case "bank_detail":
+        return `/cms/bank-details/add/${id}`;
+      case "category_listing":
+        return `/cms/category-listing/add/${id}`;
+      default:
+        return `/cms/content/add/${id}`;
+    }
+  };
+
+  // Render actions
+  const renderActions = (row) => (
+    <div className="d-flex gap-1">
+      <NavLink to={getEditUrl(row.id)}>
+        <Button color="primary" size="sm" title="Edit">
+          <FaRegEdit />
+        </Button>
+      </NavLink>
+      <Button
+        color="danger"
+        size="sm"
+        title="Delete"
+        onClick={() => handleDelete(row.id, row.title)}
+        disabled={deleteMutation.isPending}
+      >
+        <FaTrash />
+      </Button>
+    </div>
+  );
+
+  // Render slider images safely
+  const renderSliderImages = (value, row) => {
+    if (!value || value.length === 0)
+      return <span className="text-muted">No Images</span>;
     return (
-      <img
-        src={`${config.apiUrl}/${value}`}
-        alt={row.title}
-        style={{
-          width: "50px",
-          height: "50px",
-          objectFit: "cover",
-          borderRadius: "4px",
-          border: "1px solid #dee2e6",
-        }}
-      />
+      <div className="d-flex gap-1">
+        {value.slice(0, 3).map((img, index) => (
+          <img
+            key={index}
+            src={`${config.apiUrl}/${img.image_url}`}
+            alt={`${row.title} - Image ${index + 1}`}
+            style={{
+              width: "40px",
+              height: "40px",
+              objectFit: "cover",
+              borderRadius: "4px",
+              border: "1px solid #dee2e6",
+            }}
+          />
+        ))}
+        {value.length > 3 && (
+          <span className="text-muted small">+{value.length - 3}</span>
+        )}
+      </div>
     );
   };
 
@@ -72,10 +157,14 @@ const CmsList = ({ page_type }) => {
       render: (value) =>
         value ? <Badge color="info">{value?.name}</Badge> : "No Category",
     },
-    { key: "image_url", label: "Image", render: renderImage },
+    {
+      key: "slider_images",
+      label: "Slider Images",
+      render: renderSliderImages,
+    },
   ];
 
-  // ✅ Add Bank column only for bank_detail page type
+  // Add Bank column only for bank_detail page type
   if (page_type === "bank_detail") {
     headers.splice(3, 0, {
       key: "bank",
@@ -161,8 +250,15 @@ const CmsList = ({ page_type }) => {
         <NoDataFound msg="No CMS content found" />
       ) : (
         <>
-          <TableView headers={headers} data={cmsList?.content} />
-          {cmsList?.pagination && <Pagination pagination={cmsList.pagination} />}
+          <TableView
+            headers={headers}
+            data={cmsList?.content}
+            showActions={true}
+            renderActions={renderActions}
+          />
+          {cmsList?.pagination && (
+            <Pagination pagination={cmsList.pagination} />
+          )}
         </>
       )}
     </>

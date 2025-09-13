@@ -17,7 +17,7 @@ import Swal from "sweetalert2";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import CmsServices from "../../services/CmsServices";
 import CategoryServices from "../../services/CategoryServices";
-import BankServices from "../../services/BankServices"; // 🔹 NEW (API for banks)
+import BankServices from "../../services/BankServices";
 import ButtonLoader from "../../utils/Loader/ButtonLoader";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import AsyncSelect from "react-select/async";
@@ -29,15 +29,15 @@ const CmsForm = ({ title }) => {
   const location = useLocation(); // 🔹 for detecting page type from URL
   const [pageType, setPageType] = useState("");
   const [serverError, setServerError] = useState("");
-  const [cmsImg, setCmsImg] = useState(null);
-  const [showCmsImg, setShowCmsImg] = useState(null);
-  const [cmsImgErr, setCmsImgErr] = useState("");
+  const [sliderImages, setSliderImages] = useState([]);
+  const [showSliderImages, setShowSliderImages] = useState([]);
+  const [sliderImgErr, setSliderImgErr] = useState("");
   const [selectedCategory, setSelectedCategory] = useState(null);
-  const [selectedBank, setSelectedBank] = useState(null); // 🔹 NEW
-  const [banks, setBanks] = useState([]); // 🔹 NEW
+  const [selectedBank, setSelectedBank] = useState(null);
+  const [banks, setBanks] = useState([]);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const fileRef = useRef(null);
+  const sliderFileRef = useRef(null);
   const isEdit = Boolean(id);
 
   const allowedExtensionsImage = [".jpg", ".jpeg", ".png", ".webp"];
@@ -55,31 +55,32 @@ const CmsForm = ({ title }) => {
   const initialValues = {
     title: "",
     subtitle: "",
-    content: "",
     category_id: "",
-    bank_id: "", // 🔹 add bank_id
+    bank_id: "",
     is_active: true,
-    image: "",
+    slider_images: [],
   };
 
- const formik = useFormik({
-  initialValues,
-  validationSchema: CmsFormValidation(pageType), // 👈 pass pageType
-  enableReinitialize: true,
-  onSubmit: (values) => {
-    setServerError("");
-    submitHandler(values);
-  },
-});
-
+  const formik = useFormik({
+    initialValues,
+    validationSchema: CmsFormValidation(pageType), // 👈 pass pageType
+    enableReinitialize: true,
+    onSubmit: (values) => {
+      setServerError("");
+      submitHandler(values);
+    },
+  });
 
   // Fetch CMS content for editing
-  const { data: cmsData, isLoading: isLoadingCms, error: cmsFetchError } =
-    useQuery({
-      queryKey: ["cms-detail", id],
-      queryFn: () => CmsServices.getCmsContentById(id),
-      enabled: isEdit,
-    });
+  const {
+    data: cmsData,
+    isLoading: isLoadingCms,
+    error: cmsFetchError,
+  } = useQuery({
+    queryKey: ["cms-detail", id],
+    queryFn: () => CmsServices.getCmsContentById(id),
+    enabled: isEdit,
+  });
 
   // Load categories
   const loadCategoryOptions = async (inputValue) => {
@@ -125,7 +126,7 @@ const CmsForm = ({ title }) => {
     }
   };
 
-  // 🔹 Fetch banks when category is selected
+  // Fetch banks when category is selected
   useEffect(() => {
     if (selectedCategory && pageType === "bank_detail") {
       BankServices.getBanksByCategory(selectedCategory.value)
@@ -145,11 +146,10 @@ const CmsForm = ({ title }) => {
       formik.setValues({
         title: cms.title || "",
         subtitle: cms.subtitle || "",
-        content: cms.content || "",
         category_id: cms.category_id || "",
         bank_id: cms.bank_id || "",
         is_active: cms.is_active ?? true,
-        image: "",
+        slider_images: [],
       });
 
       if (cms.category) {
@@ -168,63 +168,71 @@ const CmsForm = ({ title }) => {
         });
       }
 
-      if (cms.image_url) {
-        setShowCmsImg(
-          cms.image_url.startsWith("http")
-            ? cms.image_url
-            : `/uploads/${cms.image_url}`
+      // Handle slider images
+      if (cms.slider_images && cms.slider_images.length > 0) {
+        const imageUrls = cms.slider_images.map(img => 
+          img.startsWith("http") ? img : `/uploads/${img}`
         );
+        setShowSliderImages(imageUrls);
       }
     }
   }, [cmsData, isEdit]);
 
-  const handleImage = (e) => {
-    const file = e?.target?.files?.[0];
-    setCmsImgErr("");
-    setCmsImg(null);
-    setShowCmsImg(null);
-
-    if (!file) {
-      formik.setFieldValue("image", "");
+  const handleSliderImages = (e) => {
+    const files = Array.from(e?.target?.files || []);
+    setSliderImgErr("");
+    
+    if (files.length === 0) {
+      setSliderImages([]);
+      setShowSliderImages([]);
+      formik.setFieldValue("slider_images", []);
       return;
     }
 
-    const ext = file.name.split(".").pop().toLowerCase();
-    if (!allowedExtensionsImage.includes("." + ext)) {
-      const errorMsg = `Invalid file type. Only ${allowedExtensionsImage.join(
-        ", "
-      )} allowed`;
-      setCmsImgErr(errorMsg);
-      formik.setFieldError("image", errorMsg);
-      return;
-    }
-    if (file.size > maxFileSize) {
-      const errorMsg = `File size must be less than ${maxFileSize / (1024 * 1024)
-        }MB`;
-      setCmsImgErr(errorMsg);
-      formik.setFieldError("image", errorMsg);
-      return;
+    // Validate each file
+    const validFiles = [];
+    const previewUrls = [];
+    
+    for (const file of files) {
+      const ext = file.name.split(".").pop().toLowerCase();
+      if (!allowedExtensionsImage.includes("." + ext)) {
+        const errorMsg = `Invalid file type for ${file.name}. Only ${allowedExtensionsImage.join(", ")} allowed`;
+        setSliderImgErr(errorMsg);
+        return;
+      }
+      if (file.size > maxFileSize) {
+        const errorMsg = `File ${file.name} size must be less than ${maxFileSize / (1024 * 1024)}MB`;
+        setSliderImgErr(errorMsg);
+        return;
+      }
+      validFiles.push(file);
+      previewUrls.push(URL.createObjectURL(file));
     }
 
-    setCmsImg(file);
-    setShowCmsImg(URL.createObjectURL(file));
-    formik.setFieldValue("image", file);
+    setSliderImages(validFiles);
+    setShowSliderImages(previewUrls);
+    formik.setFieldValue("slider_images", validFiles);
   };
+
 
   const submitHandler = (data) => {
     try {
       const formData = new FormData();
       Object.keys(data).forEach((key) => {
-        if (key !== "image") {
+        if (key !== "slider_images") {
           formData.append(key, data[key]);
         }
       });
 
       formData.append("page_type", pageType || "custom");
-      formData.append("section_name", "hero_slider");
+      formData.append("section_name", "hero_banner");
+      formData.append("content_type", "banner");
 
-      if (cmsImg) {
-        formData.append("image", cmsImg);
+      // Append slider images
+      if (sliderImages && sliderImages.length > 0) {
+        sliderImages.forEach((file, index) => {
+          formData.append("slider_images", file);
+        });
       }
 
       if (isEdit) {
@@ -240,13 +248,13 @@ const CmsForm = ({ title }) => {
 
   const resetFormState = () => {
     formik.resetForm();
-    setCmsImg(null);
-    setCmsImgErr("");
-    setShowCmsImg(null);
+    setSliderImages([]);
+    setSliderImgErr("");
+    setShowSliderImages([]);
     setSelectedCategory(null);
     setSelectedBank(null);
     setServerError("");
-    if (fileRef.current) fileRef.current.value = "";
+    if (sliderFileRef.current) sliderFileRef.current.value = "";
   };
 
   const CmsCreateMutation = useMutation({
@@ -265,10 +273,10 @@ const CmsForm = ({ title }) => {
         pageType === ""
           ? "/cms/content"
           : pageType === "bank_detail"
-            ? "/cms/bank-details"
-            : pageType === "category_listing"
-              ? "/cms/category-listing"
-              : "/cms/content" // default fallback
+          ? "/cms/bank-details"
+          : pageType === "category_listing"
+          ? "/cms/category-listing"
+          : "/cms/content" // default fallback
       );
     },
     onError: (err) => {
@@ -293,10 +301,10 @@ const CmsForm = ({ title }) => {
         pageType === ""
           ? "/cms/content"
           : pageType === "bank_detail"
-            ? "/cms/bank-details"
-            : pageType === "category_listing"
-              ? "/cms/category-listing"
-              : "/cms/content" // default fallback
+          ? "/cms/bank-details"
+          : pageType === "category_listing"
+          ? "/cms/category-listing"
+          : "/cms/content" // default fallback
       );
     },
     onError: (err) => {
@@ -368,24 +376,6 @@ const CmsForm = ({ title }) => {
                 </FormGroup>
               </Col>
 
-              {/* Content */}
-              <Col md="12" className="mb-3">
-                <FormGroup>
-                  <Label>Content *</Label>
-                  <Input
-                    type="textarea"
-                    rows="4"
-                    {...formik.getFieldProps("content")}
-                    className={formik.errors.content ? "is-invalid" : ""}
-                    placeholder="Enter content"
-                  />
-                  {formik.errors.content && (
-                    <div className="invalid-feedback d-block">
-                      {formik.errors.content}
-                    </div>
-                  )}
-                </FormGroup>
-              </Col>
 
               {/* Category Dropdown */}
               <Col md="6" className="mb-3">
@@ -422,7 +412,11 @@ const CmsForm = ({ title }) => {
                         const bank = banks.find(
                           (b) => b.id.toString() === e.target.value
                         );
-                        setSelectedBank(bank ? { value: bank.id, label: bank.name, raw: bank } : null);
+                        setSelectedBank(
+                          bank
+                            ? { value: bank.id, label: bank.name, raw: bank }
+                            : null
+                        );
                         formik.setFieldValue("bank_id", e.target.value);
                       }}
                     >
@@ -434,7 +428,7 @@ const CmsForm = ({ title }) => {
                       ))}
                     </Input>
                   </FormGroup>
-                   {formik.errors.bank_id && (
+                  {formik.errors.bank_id && (
                     <div className="invalid-feedback d-block">
                       {formik.errors.bank_id}
                     </div>
@@ -442,46 +436,54 @@ const CmsForm = ({ title }) => {
                 </Col>
               )}
 
-              {/* Image Upload */}
-              <Col md="6" className="mb-3">
+              {/* Slider Images */}
+              <Col md="12" className="mb-3">
                 <FormGroup>
                   <Label>
-                    Image ({allowedExtensionsImage.join("/")}, max{" "}
-                    {maxFileSize / (1024 * 1024)}MB)
-                    {!isEdit && " *"}
+                    Slider Images ({allowedExtensionsImage.join("/")}, max {maxFileSize / (1024 * 1024)}MB each) *
                   </Label>
                   <Input
                     type="file"
-                    name="image"
+                    name="slider_images"
                     accept={allowedExtensionsImage.join(",")}
-                    onChange={handleImage}
-                    innerRef={fileRef}
-                    className={cmsImgErr ? "is-invalid" : ""}
+                    onChange={handleSliderImages}
+                    innerRef={sliderFileRef}
+                    multiple
+                    className={sliderImgErr ? "is-invalid" : ""}
                   />
-                  {formik.touched.image && formik.errors.image && (
+                  {formik.touched.slider_images && formik.errors.slider_images && (
                     <div className="invalid-feedback d-block">
-                      {formik.errors.image}
+                      {formik.errors.slider_images}
                     </div>
                   )}
-                  {cmsImgErr && (
-                    <div className="text-danger mt-1">{cmsImgErr}</div>
-                  )}
-                  {showCmsImg && (
-                    <img
-                      src={showCmsImg}
-                      alt="Preview"
-                      style={{
-                        height: "80px",
-                        width: "80px",
-                        objectFit: "cover",
-                        borderRadius: "6px",
-                        border: "1px solid #ddd",
-                        marginTop: "10px",
-                      }}
-                    />
+                  {sliderImgErr && (
+                    <div className="text-danger mt-1">{sliderImgErr}</div>
                   )}
                 </FormGroup>
               </Col>
+
+              {/* Slider Images Preview */}
+              {showSliderImages.length > 0 && (
+                <Col md="12" className="mb-3">
+                  <Label>Preview:</Label>
+                  <div className="mt-2 d-flex flex-wrap gap-2">
+                    {showSliderImages.map((img, index) => (
+                      <img
+                        key={index}
+                        src={img}
+                        alt={`Slider Preview ${index + 1}`}
+                        style={{
+                          height: "100px",
+                          width: "150px",
+                          objectFit: "cover",
+                          borderRadius: "8px",
+                          border: "2px solid #ddd",
+                        }}
+                      />
+                    ))}
+                  </div>
+                </Col>
+              )}
             </Row>
 
             <div className="mt-4 pt-3 border-top">
@@ -506,6 +508,7 @@ const CmsForm = ({ title }) => {
           </Form>
         </CardBody>
       </Card>
+
     </>
   );
 };
